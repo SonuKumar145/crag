@@ -17,8 +17,8 @@ document_evaluator = ChatOpenAI(
 
 struct_document_evaluator = document_evaluator.with_structured_output(EvaluationResponse, strict=True)
 
-def score_document(documents:list[Document], query: str)->list[Evaluation]:
-    res = struct_document_evaluator.invoke([
+def score_document(documents:list[Document], query: str):
+    res:EvaluationResponse = struct_document_evaluator.invoke([
     (
         "system",
         DOCUMENT_EVALUATOR_SYSTEM_PROMPT,

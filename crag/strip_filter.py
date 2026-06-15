@@ -1,7 +1,6 @@
 from langchain_openai import ChatOpenAI
 from prompts import STRIP_FILTER_BOT_SYSTEM_PROMPT
 from pydantic import BaseModel
-from langchain_core.documents import Document
 from uuid import uuid4 as getId
 
 class StripFilterationDetail(BaseModel):
@@ -19,11 +18,11 @@ stripping_bot = ChatOpenAI(
 struct_stripping_bot = stripping_bot.with_structured_output(FilterResponse, strict=True)
     
 
-def filter_strips(strips:list[str], query: str)->list[StripFilterationDetail]:
+def filter_strips(strips:list[str], query: str)->list[str]:
     
     strips_dict = {str(getId()):s for s in strips}
     
-    res = struct_stripping_bot.invoke([
+    res:FilterResponse = struct_stripping_bot.invoke([
     (
         "system",
         STRIP_FILTER_BOT_SYSTEM_PROMPT,
@@ -32,4 +31,4 @@ def filter_strips(strips:list[str], query: str)->list[StripFilterationDetail]:
 given texts: {"\n".join([f"\nstrip id:{_id}\nstrip text:{_text}" for _id,_text in strips_dict.items()])}
 """),
     ])
-    return res.filters
+    return [ strips_dict[_s.id] for _s in res.filters if _s.keep]
