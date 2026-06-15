@@ -1,7 +1,5 @@
-
 FAQ_DOCUMENTS = [
     {
-        "id": "faq_001",
         "question": "What is the company's remote work policy?",
         "answer": (
             "Employees may work remotely up to 3 days per week after approval "
@@ -10,7 +8,6 @@ FAQ_DOCUMENTS = [
         ),
     },
     {
-        "id": "faq_002",
         "question": "How many vacation days do employees get per year?",
         "answer": (
             "Full-time employees receive 20 paid vacation days per year, "
@@ -19,7 +16,6 @@ FAQ_DOCUMENTS = [
         ),
     },
     {
-        "id": "faq_003",
         "question": "What is the procedure for requesting IT support?",
         "answer": (
             "Submit a ticket through the IT Service Portal at it.company.com. "
@@ -28,7 +24,6 @@ FAQ_DOCUMENTS = [
         ),
     },
     {
-        "id": "faq_004",
         "question": "How do I report workplace harassment?",
         "answer": (
             "Report immediately to your manager or HR Business Partner. "
@@ -37,7 +32,6 @@ FAQ_DOCUMENTS = [
         ),
     },
     {
-        "id": "faq_005",
         "question": "What are the parental leave benefits?",
         "answer": (
             "The company offers 16 weeks of paid parental leave for birth, "
@@ -46,7 +40,6 @@ FAQ_DOCUMENTS = [
         ),
     },
     {
-        "id": "faq_006",
         "question": "How do I reset my company password?",
         "answer": (
             "Visit idm.company.com and click 'Forgot Password'. You'll need "
@@ -55,7 +48,6 @@ FAQ_DOCUMENTS = [
         ),
     },
     {
-        "id": "faq_007",
         "question": "Is there a dress code in the office?",
         "answer": (
             "The company follows a 'dress for your day' policy. Business casual "
