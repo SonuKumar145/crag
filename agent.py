@@ -13,6 +13,7 @@ from configs import FILE_PATH,COLLECTION_NAME,PERSIST_DIRECTORY_PATH,OPENAI_EMBE
 from pathlib import Path
 import sys
 from dotenv import load_dotenv, set_key
+import time
 
 try:
         
@@ -54,30 +55,37 @@ try:
 
 
     print_inprocess_string_message("embedding_model","creating embedding model instance" )
+    time.sleep(1)
     embeddings = OpenAIEmbeddings(model=OPENAI_EMBEDDING_MODEL)
     print_done_string_message("embedding_model","embedding model instance created")
-
+    time.sleep(1)
     print_inprocess_string_message("vector_store","creating vector store instance")
     vectorstore = Chroma(
         collection_name=COLLECTION_NAME,
         embedding_function=embeddings,
         persist_directory=PERSIST_DIRECTORY_PATH
     )
+    time.sleep(1)
     print_done_string_message("vector_store", "vectorstore instance created")
 
     if len(vectorstore.get()["ids"]) == 0:
+        time.sleep(1)
         print_warning_string_message("documents","no document found in store")
         file_path = Path(FILE_PATH)
         
         if file_path.is_file():
+            time.sleep(1)
             print_inprocess_string_message("documents", "loadingdocuments in store")
             loaded_documents = load_document(FILE_PATH)
             add_document_to_vector_db(loaded_documents, vectorstore)
+            time.sleep(1)
             print_done_string_message("documents", "documents loaded in store")
         else:
+            time.sleep(1)
             print_error_string_message("documents", "no such file found", FILE_PATH=FILE_PATH)
             raise Exception(f"no such file found {FILE_PATH}")
     else:
+        time.sleep(1)
         print_ok_string_message("documents", "documents found in store")
 
     @tool
@@ -98,7 +106,7 @@ try:
         )
 
     llm_with_tools = llm.bind_tools([query_knowledge_base])
-
+    time.sleep(1)
     print_ok_string_message("agent_ready","Agent is ready!")
 
     messages = [

@@ -12,7 +12,7 @@ def print_inprocess_string_message(_id:str, message:str, end:str=None, **extras:
     print(json.dumps({
         'id':_id,
         'message':message,
-        'status':"in_process",
+        'status':"inprocess",
         **extras
     }), end=end, flush=True)
 

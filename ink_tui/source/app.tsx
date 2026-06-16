@@ -3,13 +3,15 @@ import { Text, Box, useStdout } from 'ink';
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import path from "path";
 import TextInput from 'ink-text-input';
+import readline from 'readline';
+import Spinner from './spinner.js';
 
 const ENTER_ALT_SCREEN = '\x1b[?1049h';
 const LEAVE_ALT_SCREEN = '\x1b[?1049l';
 
 const status_color = {
 	'ok': 'green',
-	'inprocess': 'blue',
+	'inprocess': 'red',
 	'done': 'green',
 	'warning': 'yellow',
 	'error': 'red',
@@ -49,19 +51,24 @@ export default function App() {
 	const pyProcess = useRef<ChildProcessWithoutNullStreams | null>(null);
 
 	useEffect(() => {
-		// The "-u" flag forces Python's stdout to be completely unbuffered
 		pyProcess.current = spawn(path.join(process.cwd(), '.venv', 'bin', 'python'), ['-u', 'agent.py']);
 
-		// Listen to incoming data chunks from the Python script
-		pyProcess.current.stdout.on('data', (data) => {
+		const rl = readline.createInterface({
+			input: pyProcess.current.stdout,
+			terminal: false
+		});
+
+		rl.on('line', (line) => {
 			try {
-				const response = JSON.parse(data.toString().trim());
+				const response = JSON.parse(line.trim());
+
 				setSetupMessages(prev => ({ ...prev, [response.id]: response }));
-				if (response.status == "ok" && response.id == "agent_ready") {
-					setAgentReady(true)
+
+				if (response.status === "ok" && response.id === "agent_ready") {
+					setAgentReady(true);
 				}
 			} catch (err) {
-				setHistory(prev => [...prev, `Raw Output: ${data.toString()}\nerror: ${err}`]);
+				setHistory(prev => [...prev, `Raw Output: ${line}`]);
 			}
 			setIsTyping(false);
 		});
@@ -122,10 +129,14 @@ export default function App() {
 				agentReady ? (
 					<Box flexDirection="column" marginBottom={1}>
 						{history.map((msg, index) => (
-							<Text key={index} color={msg.startsWith('You:') ? 'green' : 'white'}>
-								{msg}
-							</Text>
-
+							<Box>
+								<Text key={index} color={msg.startsWith('You:') ? 'green' : 'white'}>
+									{msg}
+								</Text>
+								{/* {
+								msg
+							} */}
+							</Box>
 						))}
 						{isTyping && <Text color="yellow" dimColor>Bot is thinking...</Text>}
 					</Box>
@@ -133,13 +144,17 @@ export default function App() {
 					<Box flexDirection="column"
 						borderStyle="single"
 						borderColor="dim">
-						<Text>
-							{setSetupMessages.length}
-						</Text>
 						{Object.entries(setupMessages).map(([id, msgDetails]) => (
-							<Text key={id} color={status_color[msgDetails.status]}>
-								{msgDetails.message}
-							</Text>
+							<Box flexDirection="row">
+								<Text key={id} color={status_color[msgDetails.status]}>
+									{msgDetails.message}
+								</Text>
+								{
+									msgDetails.status == "inprocess"?(
+										<Spinner/>
+									):null
+								}
+							</Box>
 
 						))}
 					</Box>
