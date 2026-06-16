@@ -5,13 +5,14 @@ import path from "path";
 import TextInput from 'ink-text-input';
 import readline from 'readline';
 import Spinner from './spinner.js';
+import gradient from 'gradient-string'
 
 const ENTER_ALT_SCREEN = '\x1b[?1049h';
 const LEAVE_ALT_SCREEN = '\x1b[?1049l';
 
 const status_color = {
 	'ok': 'green',
-	'inprocess': 'red',
+	'inprocess': 'white',
 	'done': 'green',
 	'warning': 'yellow',
 	'error': 'red',
@@ -120,59 +121,78 @@ export default function App() {
 			padding={1}
 			width={size.columns}
 			height={size.rows}
-			justifyContent="space-between"
 			borderStyle="single"
 			borderColor="dim"
 		>
-
+			<Box marginBottom={3} flexDirection='column'>
+				<Text color="magenta">
+					{gradient(['#3b82f6', '#8b5cf6'])('█▀▀ █▀█ ▄▀█ █▀▀ █▀▀ █▄░█ ▀█▀')}
+				</Text>
+				<Text color="magenta">
+					{gradient(['#3b82f6', '#8b5cf6'])('█▄▄ █▀▄ █▀█ █▄█ ██▄ █░▀█ ░█░')}
+				</Text>
+				<Text>{'─'.repeat(size.columns-4)}</Text>
+				<Text>{'─'.repeat(size.columns-4)}</Text>
+			</Box>
 			{
-				agentReady ? (
-					<Box flexDirection="column" marginBottom={1}>
-						{history.map((msg, index) => (
-							<Box>
-								<Text key={index} color={msg.startsWith('You:') ? 'green' : 'white'}>
-									{msg}
-								</Text>
-								{/* {
+				!agentReady ? (
+					<Box flexDirection='row'>
+						<Text color="whiteBright">
+							Initialising
+						</Text>
+						<Spinner color="whiteBright" />
+					</Box>
+				) : null
+			}
+			<Box flexDirection='column' justifyContent="space-between" flexGrow={1}>
+				{
+					agentReady ? (
+						<Box flexDirection="column" marginBottom={1}>
+							{history.map((msg, index) => (
+								<Box>
+									<Text key={index} color={msg.startsWith('You:') ? 'green' : 'white'}>
+										{msg}
+									</Text>
+									{/* {
 								msg
 							} */}
-							</Box>
-						))}
-						{isTyping && <Text color="yellow" dimColor>Bot is thinking...</Text>}
-					</Box>
-				) : (
-					<Box flexDirection="column"
-						borderStyle="single"
-						borderColor="dim">
-						{Object.entries(setupMessages).map(([id, msgDetails]) => (
-							<Box flexDirection="row">
-								<Text key={id} color={status_color[msgDetails.status]}>
-									{msgDetails.message}
-								</Text>
-								{
-									msgDetails.status == "inprocess"?(
-										<Spinner/>
-									):null
-								}
-							</Box>
+								</Box>
+							))}
+							{isTyping && <Text color="yellow" dimColor>Bot is thinking...</Text>}
+						</Box>
+					) : (
+						<Box flexDirection="column"
+							borderStyle="single"
+							borderColor="dim">
+							{Object.entries(setupMessages).map(([id, msgDetails]) => (
+								<Box flexDirection="row">
+									<Text key={id} color={status_color[msgDetails.status]}>
+										{msgDetails.message}
+									</Text>
+									{
+										msgDetails.status == "inprocess" ? (
+											<Spinner color={status_color['inprocess']} />
+										) : null
+									}
+								</Box>
 
-						))}
-					</Box>
-				)
-			}
-			{/* {
-				agentReady ? (
-					
-				) : null
-			} */}
-			<Box>
-				<Text bold color="cyan">➔ </Text>
-				<TextInput
-					value={input}
-					onChange={setInput}
-					onSubmit={handleSubmit}
-					placeholder="Type a message and press Enter..."
-				/>
+							))}
+						</Box>
+					)
+				}
+				{
+					agentReady ? (
+						<Box>
+							<Text bold color="cyan">➔ </Text>
+							<TextInput
+								value={input}
+								onChange={setInput}
+								onSubmit={handleSubmit}
+								placeholder="Type a message and press Enter..."
+							/>
+						</Box>
+					) : null
+				}
 			</Box>
 		</Box>
 	);

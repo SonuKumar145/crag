@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Text } from 'ink';
 
-const Spinner = () => {
+const Spinner = ({color}:{color:string}) => {
 	const [frame, setFrame] = useState(0);
 	const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
@@ -14,7 +14,7 @@ const Spinner = () => {
 		return () => clearInterval(timer);
 	}, []);
 
-	return <Text color="cyan">{frames[frame]} </Text>;
+	return <Text color={color}>{frames[frame]} </Text>;
 };
 
 export default Spinner

@@ -1,24 +1,17 @@
 import os
-from utils.message import print_error_string_message, print_warning_string_message, print_ok_string_message, print_inprocess_string_message, print_done_string_message
-cwd = os.getcwd()
-print_ok_string_message("cwd1", f"cwd1: {cwd}")
-print_ok_string_message("cwd2", f"cwd2: {cwd}")
-print_ok_string_message("cwd3", f"cwd3: {cwd}")
-print_ok_string_message("cwd4", f"cwd4: {cwd}")
-print_ok_string_message("cwd5", f"cwd5: {cwd}")
-print_ok_string_message("cwd6", f"cwd6: {cwd}")
-
-
-from configs import FILE_PATH,COLLECTION_NAME,PERSIST_DIRECTORY_PATH,OPENAI_EMBEDDING_MODEL, IS_SIMULATION, ENV_PATH
-from pathlib import Path
 import sys
+from pathlib import Path
 from dotenv import load_dotenv, set_key
-import time
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_chroma import Chroma
+from langchain_core.tools import tool
+from langchain_core.messages import HumanMessage, SystemMessage
 
 try:
+    from utils.message import print_error_string_message, print_warning_string_message, print_ok_string_message, print_inprocess_string_message, print_done_string_message
+    from configs import FILE_PATH,COLLECTION_NAME,PERSIST_DIRECTORY_PATH,OPENAI_EMBEDDING_MODEL, IS_SIMULATION, ENV_PATH
         
     env_file_path = Path(ENV_PATH)
-
         
     if env_file_path.is_file():
         print_ok_string_message("env_file", ".env file found")
@@ -44,48 +37,43 @@ try:
     from crag.knowledge_refinement import refine_knowledge
     # import chromadb
     # from chromadb.utils import embedding_functions
-
-    from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-    from langchain_chroma import Chroma
-    from langchain_core.tools import tool
-    from langchain_core.messages import HumanMessage, SystemMessage
     from document_handler.document_loader import load_document
     from chroma.store import add_document_to_vector_db
     from utils.simulation import get_simulated_response
 
 
     print_inprocess_string_message("embedding_model","creating embedding model instance" )
-    time.sleep(1)
+    
     embeddings = OpenAIEmbeddings(model=OPENAI_EMBEDDING_MODEL)
     print_done_string_message("embedding_model","embedding model instance created")
-    time.sleep(1)
+    
     print_inprocess_string_message("vector_store","creating vector store instance")
     vectorstore = Chroma(
         collection_name=COLLECTION_NAME,
         embedding_function=embeddings,
         persist_directory=PERSIST_DIRECTORY_PATH
     )
-    time.sleep(1)
+    
     print_done_string_message("vector_store", "vectorstore instance created")
 
     if len(vectorstore.get()["ids"]) == 0:
-        time.sleep(1)
+        
         print_warning_string_message("documents","no document found in store")
         file_path = Path(FILE_PATH)
         
         if file_path.is_file():
-            time.sleep(1)
+            
             print_inprocess_string_message("documents", "loadingdocuments in store")
             loaded_documents = load_document(FILE_PATH)
             add_document_to_vector_db(loaded_documents, vectorstore)
-            time.sleep(1)
+            
             print_done_string_message("documents", "documents loaded in store")
         else:
-            time.sleep(1)
+            
             print_error_string_message("documents", "no such file found", FILE_PATH=FILE_PATH)
             raise Exception(f"no such file found {FILE_PATH}")
     else:
-        time.sleep(1)
+        
         print_ok_string_message("documents", "documents found in store")
 
     @tool
@@ -106,7 +94,7 @@ try:
         )
 
     llm_with_tools = llm.bind_tools([query_knowledge_base])
-    time.sleep(1)
+    
     print_ok_string_message("agent_ready","Agent is ready!")
 
     messages = [
