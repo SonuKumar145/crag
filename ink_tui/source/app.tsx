@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Text, Box, useStdout } from 'ink';
+import { Text, Box, useStdout, useInput, useApp } from 'ink';
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import path from "path";
 import TextInput from 'ink-text-input';
 import readline from 'readline';
 import Spinner from './spinner.js';
 import gradient from 'gradient-string'
+import { ScrollView, ScrollViewRef } from "ink-scroll-view";
 
 const ENTER_ALT_SCREEN = '\x1b[?1049h';
 const LEAVE_ALT_SCREEN = '\x1b[?1049l';
@@ -17,14 +18,27 @@ const statusColor = {
 	warning: 'yellow',
 	error: 'red',
 }
+const chatIcon = {
+	'agent': '👾',
+	'user': '❱ ',
+	'error': '💥',
+}
+const chatMsgColor = {
+	'agent': 'white',
+	'user': '#fb923c',
+	'error': '#7f1d1d',
+}
 
 type Message = {
 	'type': 'agent' | 'user' | 'error',
-	'message_id':string,
+	'message_id': string,
 	'message': string
 }
 
 export default function App() {
+	const scrollRef = useRef<ScrollViewRef>(null);
+	const { exit } = useApp()
+	const [userScrolledUp, setUserScrolledUp] = useState(false);
 	const [input, setInput] = useState('');
 	const [history, setHistory] = useState<Message[]>([{
 		type: 'agent',
@@ -44,12 +58,22 @@ export default function App() {
 		rows: stdout.rows || 24,
 	});
 
+	const headerHeight = 4;
+	const inputHeight = 3;
+	const borderAndPadding = 4;
+	const messagesWrapperMargin = 1;
+	const scrollHeight = Math.max(
+		1,
+		size.rows - headerHeight - inputHeight - borderAndPadding - messagesWrapperMargin
+	);
+
 	useEffect(() => {
 		const handleResize = () => {
 			setSize({
 				columns: stdout.columns || 80,
 				rows: stdout.rows || 24,
 			});
+			scrollRef.current?.remeasure();
 		};
 
 		stdout.on('resize', handleResize);
@@ -57,6 +81,37 @@ export default function App() {
 			stdout.off('resize', handleResize);
 		};
 	}, [stdout]);
+
+	useInput((_, key) => {
+		if (key.upArrow) {
+			scrollRef.current?.scrollBy(-1);
+			setUserScrolledUp(true);
+		}
+		if (key.downArrow) {
+			scrollRef.current?.scrollBy(1);
+			const offset = scrollRef.current?.getScrollOffset() ?? 0;
+			const bottom = scrollRef.current?.getBottomOffset() ?? 0;
+			if (offset >= bottom) setUserScrolledUp(false);
+		}
+		if (key.pageUp) {
+			const height = scrollRef.current?.getViewportHeight() || 1;
+			scrollRef.current?.scrollBy(-height);
+			setUserScrolledUp(true);
+		}
+		if (key.pageDown) {
+			const height = scrollRef.current?.getViewportHeight() || 1;
+			scrollRef.current?.scrollBy(height);
+			const offset = scrollRef.current?.getScrollOffset() ?? 0;
+			const bottom = scrollRef.current?.getBottomOffset() ?? 0;
+			if (offset >= bottom) setUserScrolledUp(false);
+		}
+	});
+
+	useEffect(() => {
+		if (!userScrolledUp && scrollRef.current) {
+			setTimeout(() => scrollRef.current?.scrollToBottom(), 0);
+		}
+	}, [history, isTyping, userScrolledUp]);
 
 	// Keep a persistent reference to the background Python process
 	const pyProcess = useRef<ChildProcessWithoutNullStreams | null>(null);
@@ -72,28 +127,28 @@ export default function App() {
 		rl.on('line', (line) => {
 			try {
 				const response = JSON.parse(line.trim());
-				setHistory((prev) => ([
-						...prev,
-						{
-							type: 'agent',
-							message: response.message,
-							message_id: response.message_id
-						}
-					]))
 
 				if (response.status === "ok" && response.id === "agent_ready") {
 					setAgentReady(true);
 					setSetupMessages(prev => ({ ...prev, [response.id]: response }));
 				}
 				else if (response.status === "ok" && response.id === "stream_chunk") {
-					setHistory((prev) => ([
-						...prev,
-						{
-							type: 'agent',
-							message: response.message,
-							message_id: response.message_id
+					setHistory((prev) => {
+						const chat = prev.find(chatmsg => chatmsg.type == "agent" && chatmsg.message_id == response.message_id)
+						if (chat) {
+							chat.message = chat.message.concat(response.message)
+							return [...prev]
+						} else {
+							return [
+								...prev,
+								{
+									type: 'agent',
+									message: response.message,
+									message_id: response.message_id
+								}
+							]
 						}
-					]))
+					})
 				} else if (response.status === "error" && response.id === "disaster") {
 					setHistory((prev) => ([
 						...prev,
@@ -148,6 +203,15 @@ export default function App() {
 
 	const handleSubmit = (value: string) => {
 		if (!value.trim() || isTyping) return;
+		if (value.trim() == "clear") {
+			setHistory([])
+			return
+		}
+		else if (["quit", "exit"].includes(value.trim())) {
+			pyProcess.current?.kill();
+			exit()
+			return
+		}
 		const uuid = crypto.randomUUID();
 		setHistory(prev => [...prev, {
 			type: 'user',
@@ -169,19 +233,20 @@ export default function App() {
 			height={size.rows}
 			borderStyle="single"
 			borderColor="dim"
+			backgroundColor={'black'}
 		>
-			<Box marginBottom={1} flexDirection='column'>
+			<Box marginBottom={1} flexDirection='column' flexShrink={0}>
 				<Text color="magenta">
 					{gradient(['#4895dd', '#be667e'])('█▀▀ █▀█ ▄▀█ █▀▀ █▀▀ █▄░█ ▀█▀')}
 				</Text>
 				<Text color="magenta">
 					{gradient(['#4895dd', '#be667e'])('█▄▄ █▀▄ █▀█ █▄█ ██▄ █░▀█ ░█░')}
 				</Text>
-				<Text>{'─'.repeat(size.columns - 4)}</Text>
+				<Text color="#737373">{'─'.repeat(size.columns - 4)}</Text>
 			</Box>
 			{
 				!agentReady ? (
-					<Box flexDirection='row'>
+					<Box flexDirection='row' marginBottom={1}>
 						<Text color="whiteBright">
 							{`Initialising `}
 						</Text>
@@ -192,60 +257,71 @@ export default function App() {
 			<Box flexDirection='column' justifyContent="space-between" flexGrow={1}>
 				{
 					agentReady ? (
-						<Box flexDirection="column" marginBottom={1}>
-							<Text color="red">
-								Messages: {history.length}
-							</Text>
-							{history.map((msg, index) => (
-								<Box flexDirection='row'>
-									{
-										msg.type == "agent" ?
-											(
-												<Box marginRight={2} marginBottom={1}>
-													<Text
-														color="whiteBright"
-														backgroundColor="#164e63"
-													>
-														{" Agent "}
-													</Text>
-												</Box>
-											) :
-											msg.type == "user" ? (
-												<Box marginRight={2} marginBottom={1}>
-													<Text
-														color="whiteBright"
-														backgroundColor="#14532d"
-													>
-														{" User "}
-													</Text>
-												</Box>
-											) : (
-												<Box marginRight={2} marginBottom={1}>
-													<Text
-														color="whiteBright"
-														backgroundColor="#7f1d1d"
-													>
-														{" Error "}
-													</Text>
-												</Box>
+						<Box flexDirection="column" marginBottom={1} flexGrow={1}>
+							<Box height={scrollHeight} flexShrink={0}>
+								<ScrollView ref={scrollRef}>
+									{history.map((msg, index) => (
+										<Box flexDirection='row'
+										{
+										...(
+											msg.type == "user" ? {
+												marginBottom:0
+											} : {
+												marginBottom:1
+											}
+										)
+										}
+										>
+											{
+												msg.type == "agent" ?
+													(
+														<Box marginRight={2} marginBottom={1}>
+															<Text
+																color={chatMsgColor['agent']}
+															>
+																{chatIcon['agent']}
+															</Text>
+														</Box>
+													) :
+													msg.type == "user" ? (
+														<Box
+															marginRight={2}
+															marginBottom={1}
+														>
+															<Text
+																color={chatMsgColor['user']}
+															>
+																{chatIcon['user']}
+															</Text>
+														</Box>
+													) : (
+														<Box marginRight={2} marginBottom={1}>
+															<Text
+																color={chatMsgColor['error']}
+															>
+																{chatIcon['error']}
+															</Text>
+														</Box>
+													)
+											}
+											<Text key={index} color={chatMsgColor[msg.type]}>
+												{msg.message}
+											</Text>
+										</Box>
+									))}
+								</ScrollView>
+							</Box>
 
-											)
-									}
-									<Text key={index} color={msg.type == "agent" ? 'green' : 'white'}>
-										{msg.message}
-									</Text>
-									{/* {
-								bot is thinking
-							} */}
+							{isTyping && (
+								<Box>
+									<Text color="yellow" dimColor>{`Agent is thinking `}</Text>
+									<Spinner color="whiteBright" />
 								</Box>
-							))}
-							{isTyping && <Text color="yellow" dimColor>Bot is thinking...</Text>}
+							)}
 						</Box>
 					) : (
 						Object.keys(setupMessages).length > 0 ? (
-							<Box flexDirection="column"
-								borderStyle="single"
-								borderColor="dim">
+							<Box flexDirection="column">
 								{Object.entries(setupMessages).map(([id, msgDetails]) => (
 									<Box flexDirection="row">
 										<Text key={id} color={statusColor[msgDetails.status]}>
@@ -257,7 +333,6 @@ export default function App() {
 											) : null
 										}
 									</Box>
-
 								))}
 							</Box>
 						) : null
@@ -265,8 +340,8 @@ export default function App() {
 				}
 				{
 					agentReady ? (
-						<Box>
-							<Text bold color="cyan">➔ </Text>
+						<Box backgroundColor={"#262626"} padding={1}>
+							<Text bold color={chatMsgColor['user']}>{chatIcon['user']}</Text>
 							<TextInput
 								value={input}
 								onChange={setInput}
