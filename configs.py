@@ -1,7 +1,7 @@
 DOCUMENTATION_EVALUATION_THRESHOLD=0.3
 IS_SIMULATION=False
-FILE_PATH="./documents/small.txt"
+FILE_PATH="./documents/resume.pdf"
 ENV_PATH="./.env"
-COLLECTION_NAME="crag"
+COLLECTION_NAME="ragent_resume"
 PERSIST_DIRECTORY_PATH="./langchain_chroma/chroma_db"
-OPENAI_EMBEDDING_MODEL="text-embedding-3-small"
+EMBEDDING_MODEL="qwen3-embedding:0.6b"

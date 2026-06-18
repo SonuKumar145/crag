@@ -31,9 +31,9 @@ class EvaluationResponse(BaseModel):
 
 
 document_evaluator = ChatOllama(
-                model="qwen3.5:4b",
+                model="gemma3:4b",
                 temperature=0.3,
-                num_ctx=16384
+                num_ctx=4096
             )
 
 struct_document_evaluator = document_evaluator.with_structured_output(EvaluationResponse, strict=True)

@@ -92,9 +92,9 @@ Returns the top relevant content.
 
 agent = create_deep_agent(
     model=ChatOllama(
-            model="qwen3.5:0.8b",
+            model="gemma3:4b",
             temperature=0.3,
-            num_ctx=16384
+            num_ctx=4096
         ),
     system_prompt=SYSTEM_PROMPT,
 )

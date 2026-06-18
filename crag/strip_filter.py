@@ -17,16 +17,15 @@ class FilterResponse(BaseModel):
     filters: list[StripFilterationDetail]
 
 stripping_bot = ChatOllama(
-                model="qwen3.5:4b",
+                model="gemma3:4b",
                 temperature=0.3,
-                num_ctx=16384
+                num_ctx=4096
             )
 
 struct_stripping_bot = stripping_bot.with_structured_output(FilterResponse, strict=True)
     
 
 def filter_strips(strips:list[str], query: str)->list[str]:
-    print("filtering strips...")
     if IS_SIMULATION:
         return strips
     
