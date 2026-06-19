@@ -1,14 +1,15 @@
-from langchain_ollama import ChatOllama
+from langchain_anthropic import ChatAnthropic
 from utils.prompts import DOCUMENT_EVALUATOR_SYSTEM_PROMPT
 from pydantic import BaseModel, Field, field_validator
 from configs import IS_SIMULATION
 from langchain_core.documents import Document
 from uuid import UUID
-# import os
+from utils.message import print_done_string_message, print_inprocess_string_message
+import os
 
-# OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-# if not OPENAI_API_KEY:
-#     raise ValueError("openai_key_loaded_not_set.")
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+if not ANTHROPIC_API_KEY:
+    raise ValueError("anthropic_key_loaded_not_set.")
 
 class Evaluation(BaseModel):
     id:str = Field(
@@ -30,19 +31,19 @@ class EvaluationResponse(BaseModel):
     scores: list[Evaluation]
 
 
-document_evaluator = ChatOllama(
-                model="gemma3:4b",
-                temperature=0.3,
-                num_ctx=4096
+document_evaluator = ChatAnthropic(
+                api_key=ANTHROPIC_API_KEY,
+                model="claude-haiku-4-5"
             )
 
 struct_document_evaluator = document_evaluator.with_structured_output(EvaluationResponse, strict=True)
 
 def score_document(documents:list[Document], query: str):
-    print("going to score these docs: ", [str(doc.id) for doc in documents])
     if IS_SIMULATION:
         return [ Evaluation(id=d.id, score=8) for d in documents]
-
+    
+    print_inprocess_string_message("evaluation","Evaluating collected information")
+    
     res:EvaluationResponse = struct_document_evaluator.invoke([
     (
         "system",
@@ -52,5 +53,7 @@ def score_document(documents:list[Document], query: str):
 given texts: {"\n".join([f"\n{d.id}\ndocument page_content:{d.page_content}" for d in documents])}
 """),
     ], config={"metadata": {"source": "document_evaluator"}, "callbacks":[]})
-    print("documents scored!!", ([s.model_dump_json() for s in res.scores]))
+    
+    print_done_string_message("evaluation","Information evaluated!")
+    
     return res.scores

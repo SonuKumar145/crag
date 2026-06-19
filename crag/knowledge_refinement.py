@@ -1,8 +1,9 @@
-import re
+import re, json
 from langchain_core.documents import Document
 from .document_evaluator import score_document, Evaluation
 from configs import DOCUMENTATION_EVALUATION_THRESHOLD
 from .strip_filter import filter_strips
+from utils.message import print_inprocess_string_message, print_done_string_message
 
 def convert_to_strips(text:str):
     text = re.sub(r"\s+", " ", text).strip()
@@ -14,20 +15,22 @@ def filter_docs(scores: list[Evaluation], documents:dict[str,Document], threshol
 
 
 def refine_knowledge(query:str, documents:list[Document])->str:
-    print("query: ", query)
+    # print("query: ", query)
     refined_knowledge = ""
     
     doc_dict = { doc.id:doc for doc in documents}
+    # print("doc_dict:\n", json.dumps({ doc.id:doc.page_content for doc in documents}, indent=4))
     
     scored_documents= score_document(documents, query)
     filtered_documents = filter_docs(scored_documents, doc_dict, threshold=DOCUMENTATION_EVALUATION_THRESHOLD)
     
+    print_inprocess_string_message("filtering","Filtering irrelevant informations")
     for doc in filtered_documents:
         strips = convert_to_strips(doc.page_content)
         filtered_strips = filter_strips(strips, query)
         refined_knowledge = f"{refined_knowledge}\n{"\n".join(filtered_strips)}"
-    
-    print("refinied knowledge: ", refined_knowledge)
+    print_done_string_message("filtering","Filteration done!")
+    # print("refined knowledge: ", refined_knowledge)
     return refined_knowledge
         
 
